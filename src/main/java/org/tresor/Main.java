@@ -1,15 +1,13 @@
 package org.tresor;
 
-import com.mongodb.ConnectionString;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.ServerApi;
-import com.mongodb.ServerApiVersion;
+import com.mongodb.*;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import io.github.cdimascio.dotenv.Dotenv;
+import org.bson.Document;
 
 public class Main {
-    static void main(String[] args) {
+    public static void main(String[] args) {
 
         Dotenv dotenv = Dotenv.configure()
                 .ignoreIfMissing()
@@ -34,6 +32,19 @@ public class Main {
                 .applyConnectionString(new ConnectionString(ConnectionStringReceiver))
                 .serverApi(serverApi)
                 .build();
+
+        try (MongoClient transferClient = MongoClients.create(TransferSettings)) {
+            try(MongoClient receiverClient = MongoClients.create(ReceiverSettings)){
+
+                transferClient.getDatabase("admin").runCommand(new Document("ping", 1));
+                receiverClient.getDatabase("admin").runCommand(new Document("ping", 1));
+
+            }catch(MongoException e){
+                System.out.println(e);
+            }
+        }catch(MongoException e){
+            System.out.println(e);
+        }
 
     }
 }
