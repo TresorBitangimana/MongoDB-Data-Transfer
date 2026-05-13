@@ -3,8 +3,13 @@ package org.tresor;
 import com.mongodb.*;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.bson.Document;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
@@ -36,8 +41,49 @@ public class Main {
         try (MongoClient transferClient = MongoClients.create(TransferSettings)) {
             try(MongoClient receiverClient = MongoClients.create(ReceiverSettings)){
 
-                transferClient.getDatabase("admin").runCommand(new Document("ping", 1));
-                receiverClient.getDatabase("admin").runCommand(new Document("ping", 1));
+                //list to store all the Databases from the transfer cluster
+                List<MongoDatabase> transferDatabases = new ArrayList<>();
+
+                //loops through the cluster and gets all the databases names and use them
+                //to store the actual databases in the transferDatabases Arraylist
+                for(String TransferDatabaseName : transferClient.listDatabaseNames()){
+                    if(TransferDatabaseName.equals("admin") ||
+                            TransferDatabaseName.equals("local") ||
+                            TransferDatabaseName.equals("config")){
+                        continue;
+                    }else{
+                        transferDatabases.add(transferClient.getDatabase(TransferDatabaseName));
+
+                    }
+                }
+
+
+                //loops through the transferDatabases ArrayList
+                //creates a newReceiverDataBase with the receiverClient
+                //creates a TransferCollections ArrayList to store all the collections
+                //loops through each database in transferDatabases to get their collections
+                //loops through each collection
+                //creates a new collection newReceiverCollection with the newReceiverDatabase
+                //creates an Arraylist docs that stores all the documents in the transferCollections
+                //finally adds the documents in the newReceiverCollection using insertMany()
+                for(MongoDatabase transferDatabase : transferDatabases){
+                    MongoDatabase newReceiverDatabase = receiverClient.getDatabase(transferDatabase.getName());
+
+                    //list to store all the collection
+                    List<MongoCollection<Document>> transferCollections = new ArrayList<>();
+
+                    for(String transferCollectionName : transferDatabase.listCollectionNames()){
+                        transferCollections.add(transferDatabase.getCollection(transferCollectionName));
+                    }
+                    for(MongoCollection<Document> collection : transferCollections){
+                        MongoCollection<Document> newReceiverCollection = newReceiverDatabase.getCollection(collection.getNamespace().getCollectionName());
+                        List<Document> docs = collection.find().into(new ArrayList<>());
+                        if(!docs.isEmpty()){
+                            newReceiverCollection.insertMany(docs);
+                        }
+                    }
+                }
+
 
             }catch(MongoException e){
                 System.out.println(e);
