@@ -68,18 +68,24 @@ public class Main {
                 //finally adds the documents in the newReceiverCollection using insertMany()
                 for(MongoDatabase transferDatabase : transferDatabases){
                     MongoDatabase newReceiverDatabase = receiverClient.getDatabase(transferDatabase.getName());
+                    System.out.println("Created receiver database: "+ newReceiverDatabase.getName());
 
                     //list to store all the collection
                     List<MongoCollection<Document>> transferCollections = new ArrayList<>();
 
                     for(String transferCollectionName : transferDatabase.listCollectionNames()){
                         transferCollections.add(transferDatabase.getCollection(transferCollectionName));
+                        System.out.println("Added Collection: "+transferDatabase
+                                .getCollection(transferCollectionName)
+                                .getNamespace()
+                                .getCollectionName() + "To "+newReceiverDatabase.getName()+ "database");
                     }
                     for(MongoCollection<Document> collection : transferCollections){
                         MongoCollection<Document> newReceiverCollection = newReceiverDatabase.getCollection(collection.getNamespace().getCollectionName());
                         List<Document> docs = collection.find().into(new ArrayList<>());
                         if(!docs.isEmpty()){
                             newReceiverCollection.insertMany(docs);
+                            System.out.println("Added all document to"+ collection.getNamespace().getCollectionName() + "collection");
                         }
                     }
                 }
