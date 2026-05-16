@@ -14,6 +14,7 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
 
+        //configures dotenv to not throw an error if the dot env file is missing
         Dotenv dotenv = Dotenv.configure()
                 .ignoreIfMissing()
                 .load();
@@ -38,6 +39,8 @@ public class Main {
                 .serverApi(serverApi)
                 .build();
 
+        //try catch block, create the client, throws an error if not possible
+        //automatically closes the connection with the mongoDB client after use.
         try (MongoClient transferClient = MongoClients.create(TransferSettings)) {
             try(MongoClient receiverClient = MongoClients.create(ReceiverSettings)){
 
